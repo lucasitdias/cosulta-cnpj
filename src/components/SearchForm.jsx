@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Search, X, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
-import { formatCNPJ, cleanCNPJ, validateCNPJ, generateRandomCNPJ } from '../utils/cnpjValidator';
+import { Search, X, CheckCircle, AlertCircle, Sparkles, Binary } from 'lucide-react';
+import { 
+  formatCNPJ, cleanCNPJ, validateCNPJ, generateRandomCNPJ, 
+  generateRandomAlphanumericCNPJ, isAlphanumericCNPJ 
+} from '../utils/cnpjValidator';
 import { SAMPLE_CNPJS } from '../services/cnpjApi';
 
 export default function SearchForm({ onSearch, loading, errorMessage }) {
@@ -9,6 +12,7 @@ export default function SearchForm({ onSearch, loading, errorMessage }) {
   const cleanVal = cleanCNPJ(inputVal);
   const isValid = cleanVal.length === 14 && validateCNPJ(cleanVal);
   const isInvalid = cleanVal.length === 14 && !isValid;
+  const isAlpha = isAlphanumericCNPJ(cleanVal);
 
   const handleChange = (e) => {
     const formatted = formatCNPJ(e.target.value);
@@ -26,16 +30,22 @@ export default function SearchForm({ onSearch, loading, errorMessage }) {
     onSearch(cleanCNPJ(sampleCnpj));
   };
 
-  const handleGenerateRandom = () => {
+  const handleGenerateNumeric = () => {
     const randomCnpj = generateRandomCNPJ();
     setInputVal(randomCnpj);
   };
 
+  const handleGenerateAlphanumeric = () => {
+    const randomAlphaCnpj = generateRandomAlphanumericCNPJ();
+    setInputVal(randomAlphaCnpj);
+  };
+
   return (
     <div className="search-hero-card glass-panel animate-fade-in">
-      <h2 className="search-title">Consulte qualquer CNPJ instantaneamente</h2>
+      <h2 className="search-title">Consulte qualquer CNPJ (Numérico ou Alfanumérico)</h2>
       <p className="search-subtitle">
-        Acesse Razão Social, Quadro de Sócios (QSA), Situação Cadastral, CNAEs, Endereço e exporte o Comprovante Oficial em PDF.
+        Suporte completo ao <strong>Novo Modelo de CNPJ Alfanumérico (RFB IN 2.229)</strong> e ao modelo tradicional.
+        Acesse Razão Social, QSA, CNAEs, Endereço e exporte em PDF.
       </p>
 
       <form onSubmit={handleSubmit} className="search-form-group">
@@ -45,13 +55,27 @@ export default function SearchForm({ onSearch, loading, errorMessage }) {
           <input
             type="text"
             className="cnpj-input"
-            placeholder="00.000.000/0000-00"
+            placeholder="12.ABC.345/A001-90 ou 00.000.000/0000-00"
             value={inputVal}
             onChange={handleChange}
             maxLength={18}
             disabled={loading}
             autoFocus
           />
+
+          {isAlpha && isValid && (
+            <span style={{ 
+              fontSize: '0.675rem', 
+              fontWeight: 800, 
+              background: 'rgba(139, 92, 246, 0.2)', 
+              color: '#8b5cf6', 
+              padding: '2px 6px', 
+              borderRadius: '4px',
+              marginRight: '6px'
+            }}>
+              ALFANUMÉRICO
+            </span>
+          )}
 
           {inputVal && (
             <button
@@ -65,11 +89,11 @@ export default function SearchForm({ onSearch, loading, errorMessage }) {
           )}
 
           {isValid && (
-            <CheckCircle size={20} color="#22c55e" style={{ margin: '0 8px' }} title="CNPJ com formato válido" />
+            <CheckCircle size={20} color="#22c55e" style={{ margin: '0 8px' }} title="CNPJ válido perante o algoritmo da Receita Federal" />
           )}
 
           {isInvalid && (
-            <AlertCircle size={20} color="#ef4444" style={{ margin: '0 8px' }} title="CNPJ inválido" />
+            <AlertCircle size={20} color="#ef4444" style={{ margin: '0 8px' }} title="CNPJ com formato ou dígitos verificadores inválidos" />
           )}
 
           <button
@@ -94,7 +118,7 @@ export default function SearchForm({ onSearch, loading, errorMessage }) {
         {isInvalid && (
           <div className="error-banner">
             <AlertCircle size={18} />
-            <span>O número de CNPJ digitado é inválido segundo as regras da Receita Federal.</span>
+            <span>O número ou letras do CNPJ digitado são inválidos conforme o algoritmo Modulo 11 da Receita Federal.</span>
           </div>
         )}
 
@@ -125,13 +149,25 @@ export default function SearchForm({ onSearch, loading, errorMessage }) {
         <button
           type="button"
           className="sample-chip"
-          onClick={handleGenerateRandom}
+          onClick={handleGenerateAlphanumeric}
           disabled={loading}
-          title="Gerar CNPJ válido aleatório para testes"
+          title="Gerar CNPJ Alfanumérico Válido (Novo Modelo 2026)"
+          style={{ borderColor: '#8b5cf6', color: '#8b5cf6' }}
+        >
+          <Sparkles size={13} color="#8b5cf6" />
+          <span>Gerar Alfanumérico</span>
+        </button>
+
+        <button
+          type="button"
+          className="sample-chip"
+          onClick={handleGenerateNumeric}
+          disabled={loading}
+          title="Gerar CNPJ Numérico Tradicional"
           style={{ borderColor: 'var(--brand-primary)' }}
         >
-          <Sparkles size={13} color="var(--brand-primary)" />
-          <span>Gerar Aleatório</span>
+          <Binary size={13} color="var(--brand-primary)" />
+          <span>Gerar Numérico</span>
         </button>
       </div>
     </div>

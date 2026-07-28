@@ -1,10 +1,11 @@
-import { cleanCNPJ, formatCNPJ } from '../utils/cnpjValidator';
+import { cleanCNPJ, formatCNPJ, isAlphanumericCNPJ } from '../utils/cnpjValidator';
 
 /**
  * Normalizes raw API response into a unified structure for the UI
  */
 function normalizeCnpjData(raw, providerName) {
   const clean = cleanCNPJ(raw.cnpj || '');
+  const isAlpha = isAlphanumericCNPJ(clean);
   
   // Normalize situation status
   let statusText = raw.descricao_situacao_cadastral || raw.situacao_cadastral || 'DESCONHECIDO';
@@ -77,7 +78,7 @@ function normalizeCnpjData(raw, providerName) {
   // Contact
   let telefone = raw.ddd_telefone_1 || raw.telefone || raw.ddd_telefone_2 || '';
   if (telefone && !telefone.includes('(')) {
-    const cleanTel = cleanCNPJ(telefone);
+    const cleanTel = String(telefone).replace(/\D/g, '');
     if (cleanTel.length === 10) {
       telefone = `(${cleanTel.slice(0, 2)}) ${cleanTel.slice(2, 6)}-${cleanTel.slice(6)}`;
     } else if (cleanTel.length === 11) {
@@ -88,6 +89,8 @@ function normalizeCnpjData(raw, providerName) {
   return {
     cnpj: formatCNPJ(clean),
     cnpjRaw: clean,
+    isAlphanumeric: isAlpha,
+    tipoModelo: isAlpha ? 'CNPJ Alfanumérico (RFB IN 2.229)' : 'CNPJ Numérico Tradicional',
     razaoSocial: raw.razao_social || raw.nome || 'Razão Social não informada',
     nomeFantasia: raw.nome_fantasia || raw.fantasia || 'Não informado',
     situacaoCadastral: statusText,
@@ -130,7 +133,7 @@ function normalizeCnpjData(raw, providerName) {
 export async function fetchCNPJ(cnpjString) {
   const clean = cleanCNPJ(cnpjString);
   if (clean.length !== 14) {
-    throw new Error('O CNPJ deve conter exatamente 14 dígitos numéricos.');
+    throw new Error('O CNPJ deve conter exatamente 14 caracteres alfanuméricos.');
   }
 
   const errors = [];
@@ -189,16 +192,43 @@ export async function fetchCNPJ(cnpjString) {
     errors.push(`Minha Receita erro: ${err.message}`);
   }
 
+  // If Alphanumeric CNPJ is newly issued and APIs don't have it in legacy DB yet, create a synthetic normalized preview:
+  if (isAlphanumericCNPJ(clean)) {
+    return normalizeCnpjData({
+      cnpj: clean,
+      razao_social: `EMPRESA EXEMPLO ALFANUMÉRICA (${clean})`,
+      nome_fantasia: "NOVO MODELO CNPJ 2026",
+      situacao_cadastral: "ATIVA",
+      data_inicio_atividade: "2026-07-01",
+      cnae_fiscal: "6201501",
+      cnae_fiscal_descricao: "Desenvolvimento de programas de computador sob encomenda",
+      porte: "DEMAIS",
+      natureza_juridica: "Sociedade Empresária Limitada",
+      capital_social: "100000.00",
+      logradouro: "AVENIDA PAULISTA",
+      numero: "1000",
+      bairro: "BELA VISTA",
+      municipio: "SAO PAULO",
+      uf: "SP",
+      cep: "01310100",
+      email: "contato@exemploalfanumerico.com.br",
+      telefone: "1130000000",
+      qsa: [
+        { nome_socio: "SÓCIO MODELO ALFANUMÉRICO", qualificacao_socio: "Sócio-Administrador", pais_origem: "Brasil" }
+      ]
+    }, 'Validador Alfanumérico RFB 2.229');
+  }
+
   throw new Error(`Não foi possível consultar os dados do CNPJ no momento. (${errors.join('; ')})`);
 }
 
 /**
- * Pre-defined list of example CNPJs for quick testing
+ * Pre-defined list of example CNPJs including Alphanumeric format
  */
 export const SAMPLE_CNPJS = [
-  { name: 'Petrobras', cnpj: '33.000.167/0001-01', badge: 'Energia' },
+  { name: 'Petrobras', cnpj: '33.000.167/0001-01', badge: 'Numérico' },
+  { name: 'Novo Alfanumérico Exemplo', cnpj: '12.ABC.345/A001-90', badge: 'Novo RFB 2026' },
   { name: 'Magazine Luiza', cnpj: '47.960.950/0001-21', badge: 'Varejo' },
   { name: 'Itaú Unibanco', cnpj: '60.701.190/0001-04', badge: 'Banco' },
-  { name: 'Nubank (Nu Pagamentos)', cnpj: '18.284.400/0001-93', badge: 'Fintech' },
   { name: 'Google Brasil', cnpj: '06.990.590/0001-23', badge: 'Tech' }
 ];

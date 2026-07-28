@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Building, Users, Briefcase, MapPin, Download, Star, 
-  Copy, Check, FileJson, ExternalLink, Calendar, DollarSign,
-  ShieldCheck, AlertTriangle
+  Copy, Check, FileJson, ExternalLink, ShieldCheck, AlertTriangle, Sparkles
 } from 'lucide-react';
 import { generateCNPJPDF } from '../utils/pdfExport';
 
@@ -25,7 +24,7 @@ export default function CnpjDetails({ data, isFavorite, onToggleFavorite }) {
 
   const handleCopySummary = () => {
     const summary = `
-CNPJ: ${data.cnpj}
+CNPJ: ${data.cnpj} (${data.tipoModelo || 'CNPJ'})
 Razão Social: ${data.razaoSocial}
 Nome Fantasia: ${data.nomeFantasia}
 Situação Cadastral: ${data.situacaoCadastral} (${data.dataSituacaoCadastral || 'N/A'})
@@ -60,15 +59,34 @@ Capital Social: ${data.capitalSocial}
       {/* Header Section */}
       <div className="company-header">
         <div className="company-title-area">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span className={`status-tag ${getStatusClass(data.situacaoCadastral)}`}>
               {data.situacaoCadastral === 'ATIVA' ? <ShieldCheck size={14} /> : <AlertTriangle size={14} />}
               {data.situacaoCadastral}
             </span>
+            
             <span className="company-cnpj-code">{data.cnpj}</span>
+
+            {data.isAlphanumeric && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '0.25rem 0.6rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(139, 92, 246, 0.15)',
+                border: '1px solid rgba(139, 92, 246, 0.4)',
+                color: '#8b5cf6',
+                fontWeight: 700,
+                fontSize: '0.75rem'
+              }}>
+                <Sparkles size={12} />
+                <span>Novo Modelo Alfanumérico (RFB IN 2.229)</span>
+              </span>
+            )}
           </div>
 
-          <h2 className="company-name">{data.razaoSocial}</h2>
+          <h2 className="company-name" style={{ marginTop: '6px' }}>{data.razaoSocial}</h2>
           {data.nomeFantasia && data.nomeFantasia !== 'Não informado' && (
             <p className="company-fantasia">Fantasia: {data.nomeFantasia}</p>
           )}
@@ -156,6 +174,13 @@ Capital Social: ${data.capitalSocial}
           <div className="info-item">
             <span className="info-label">CNPJ</span>
             <span className="info-value highlight">{data.cnpj}</span>
+          </div>
+
+          <div className="info-item">
+            <span className="info-label">Padrão do CNPJ</span>
+            <span className="info-value" style={{ color: data.isAlphanumeric ? '#8b5cf6' : 'inherit' }}>
+              {data.tipoModelo || 'CNPJ Numérico Tradicional'}
+            </span>
           </div>
 
           <div className="info-item">
